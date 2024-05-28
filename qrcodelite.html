@@ -1,0 +1,133 @@
+<!DOCTYPE html>  
+<html lang="en">  
+<head>  
+<meta charset="UTF-8">  
+<meta name="viewport" content="width=device-width, initial-scale=1.0">  
+<title>二维码生成器</title>  
+<style>  
+  body, html {  
+    height: 100%;  
+/*   background-color: #A0A0A0;*/
+    margin: 0;  
+    display: flex;  
+    flex-direction: column;  
+    justify-content: flex-start; /* 垂直靠上 */  
+    align-items: center; /* 水平居中 */  
+  }  
+  
+  .qrcode-container {  
+    /* 你可以根据需要调整这个容器的样式 */  
+    max-width: 500px; /* 例如，限制二维码的最大宽度为300px */  
+   margin:10px;
+  }  
+  
+  .qrcode-image {  
+    /* 你可以根据需要调整这个图片的样式 */  
+    max-width: 100%; /* 使图片宽度与其容器宽度一致，但不会超过容器的宽度 */  
+    height: auto; /* 保持图片的纵横比 */  
+  }  
+.select-row {  
+  display: flex;  
+  align-items: center;  
+}  
+  
+.select-row select {  
+  margin-right: 10px;  
+}
+</style>   
+</head>  
+<body>  
+  
+<div class="qrcode-container" id="qrcode">  
+ 
+</div>   
+
+  <div>  
+    <input type="text" id="inputKey" placeholder="请输入密钥">  
+	   <input type="text" id="inputCard" placeholder="请输入卡号">  
+    <button onclick="saveString()">保存</button>  
+    <button onclick="readString()">读取</button> 
+      <button onclick="update()">刷新</button>   
+    <p id="output"></p>  
+</div>  
+<script src="https://cdn.bootcdn.net/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>  
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>  
+<script>  
+var timer
+function saveString() {  
+      
+    var InputKey = document.getElementById('inputKey').value;  
+	var InputCard = document.getElementById('inputCard').value;
+    localStorage.setItem('qrcode_key', InputKey);  
+	 localStorage.setItem('qrcode_card', InputCard);  
+    document.getElementById('output').textContent = '字符串已保存！';  
+    update();
+}  
+  
+// 从localStorage读取字符串并显示在页面上  
+function readString() {  
+    var inputKey = localStorage.getItem('qrcode_key'); 
+	var inputCard = localStorage.getItem('qrcode_card');  
+    if (inputKey && inputCard) {  
+        document.getElementById('output').textContent = '读取的卡号是: ' +inputCard;
+        return true;  
+    } else {  
+        document.getElementById('output').textContent = '没有保存的字符串！'; 
+		return false
+    }  
+} 
+  
+function aesEncryptECB128(message, key) {  
+    // 确保密钥长度为16字节（AES-128）  
+    if (key.length !== 16) {  
+        throw new Error('Key must be 16 bytes (AES-128)');  
+    }  
+  
+    // 使用CryptoJS的AES和ECB模式进行加密  
+    const encrypted = CryptoJS.AES.encrypt(message, CryptoJS.enc.Utf8.parse(key), {  
+        mode: CryptoJS.mode.ECB,  
+        padding: CryptoJS.pad.Pkcs7  
+    });  
+  
+    // 返回加密后的Base64字符串  
+    return encrypted.toString();  
+}  
+  
+function update(){
+
+if (readString()){
+var key=localStorage.getItem('qrcode_key');   // 16字节的密钥 
+console.log(key)
+var card_no=localStorage.getItem('qrcode_card')
+
+let timestamp = Math.floor(Date.now()/1000)+60; 
+
+var message = '3;'+card_no+';'+timestamp+';2;';  
+console.log(message)
+const encrypted = aesEncryptECB128(message, key);  
+console.log(encrypted); // 输出加密后的Base64字符串
+var qrcodeContainer = document.getElementById('qrcode');  
+ 
+    // 清除之前的二维码（如果有）  
+    qrcodeContainer.innerHTML = '';  
+    // 假设我们要生成的二维码内容是 "https://www.example.com"  
+    var qrcodeData = "qrc:"+encrypted;  
+  
+    // 使用qrcode.js生成二维码  
+    new QRCode(document.getElementById("qrcode"), {  
+        text: qrcodeData,  
+        width:"300",
+        height:"300",
+        colorDark: "#000000",  
+        colorLight: "#ffffff",  
+        correctLevel: QRCode.CorrectLevel.H  
+    });  
+clearTimeout(timer);
+timer=setTimeout(update, 55000);
+}}
+
+update();
+</script>  
+  
+</body>  
+</html>
